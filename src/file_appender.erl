@@ -2,10 +2,12 @@
 
 -behaviour(gen_server).
 
-% api
+-include_lib("eunit/include/eunit.hrl").
+
+% api exports
 -export([append/2, is_file_opened/0]).
 
-% gen server
+% gen server exports
 -export([start_link/1, init/1, handle_call/3, terminate/2, handle_info/2]).
 
 % api
@@ -101,3 +103,41 @@ terminate(normal, State) ->
     % close the file
     file:close(IoDevice),
     ok.
+
+
+
+% tests
+
+append_test_() -> 
+    {setup, 
+        fun() -> 
+            ServerStatusBefore = whereis(file_appender_server),
+            File = "text.txt",
+            StringToAppend = "Test string",
+            AppendStatus = append_string_to_file(File, StringToAppend),
+            FileStatusBeforeTimeout = is_file_opened(),
+            timer:sleep(10000),
+            FileStatusAfterTimeout = is_file_opened(),
+            {_, StringAppendedBinary} = file:read_file(File),
+            [StringAppended, _, _] = string:replace(binary_to_list(StringAppendedBinary), "\n", ""),
+            {File, ServerStatusBefore, StringToAppend, AppendStatus, FileStatusBeforeTimeout, FileStatusAfterTimeout, StringAppended}
+        end,
+        fun (Res) -> 
+            Res 
+        end,
+        fun (Res) -> 
+            {File,ServerStatusBefore, StringToAppend, AppendStatus, FileStatusBeforeTimeout, FileStatusAfterTimeout, StringAppended} = Res,
+            file:delete(File),
+            ?_assertEqual(ServerStatusBefore, undefined),
+            ?_assertEqual(AppendStatus, ok),
+            ?_assertEqual(FileStatusBeforeTimeout, {ok, "Yes"}),
+            ?_assertEqual(FileStatusAfterTimeout, {ok, "No"}),
+            ?_assertEqual(StringToAppend, StringAppended)
+        end
+    }.
+
+append_string_to_file(File, String) ->
+    {Status, _} = append(File, String),
+    Status.
+
+    
