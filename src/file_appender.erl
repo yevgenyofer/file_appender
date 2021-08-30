@@ -8,7 +8,7 @@
 -export([append/2, is_file_opened/0]).
 
 % gen server exports
--export([start_link/1, init/1, handle_call/3, terminate/2, handle_info/2]).
+-export([start_link/1, init/1, handle_call/3, terminate/2, handle_info/2]). % missing handle_cast
 
 % api
 
@@ -20,7 +20,7 @@ append(Path, String) ->
     Pid = case GenServerPid =:= undefined of
         true -> 
             % start gen server if it's not running
-            {ok, NewPid} = start_link(Path),
+            {ok, NewPid} = start_link(Path), % this is not the right place to call this function in a gen_server scenario
             NewPid;
         false -> GenServerPid
     end,
@@ -75,7 +75,7 @@ handle_call({append, String}, _From, State) ->
     catch erlang:cancel_timer(CurrentTimerReference),
     
     % create new timer by using delayed info message
-    NewTimerReference = erlang:send_after(10000, self(), close_file),
+    NewTimerReference = erlang:send_after(10000, self(), close_file), % there a better and simple solutions to achieve timeout in gen_server
 
     % create readable reply to show in shell
     Reply = "Line '" ++ String ++ "' added to the file '" ++ Path ++ "'",
