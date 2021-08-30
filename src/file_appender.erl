@@ -8,11 +8,15 @@
 -export([append/2, is_file_opened/0]).
 
 % gen server exports
--export([start_link/1, init/1, handle_call/3, terminate/2, handle_info/2]).
+-export([start_link/1, init/1, handle_call/3, handle_cast/2, terminate/2, handle_info/2]).
 
 % api
 
 append(Path, String) ->
+
+    % check input
+    is_string(Path),
+    is_string(String),
 
     % get file_appender_server Pir or undefined
     % to check if process is already running
@@ -28,6 +32,13 @@ append(Path, String) ->
     % call generic append function
     gen_server:call(Pid, {append, String}).
 
+% function to return error if passed not a string
+is_string(Input) ->
+    case is_list(Input) of
+        true -> ok;
+        false -> erlang:error(badarg)
+    end.
+
 % function to check if server is running
 is_file_opened() ->
     
@@ -40,6 +51,7 @@ is_file_opened() ->
     end,
     % reply to shell
     {ok, Reply}.
+
 
 % gen server
 
@@ -89,6 +101,9 @@ handle_call({append, String}, _From, State) ->
     {reply, {ok, Reply}, NewState};
 % function to handle all other messages
 handle_call(_Msg, _From, State) ->
+    {noreply, State}.
+
+handle_cast(_Msg, State) ->
     {noreply, State}.
 
 % function to handle delayed info message
